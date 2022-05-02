@@ -23,6 +23,7 @@ topDownCamera.lookAt(0, 0, -5);
 const listener = new THREE.AudioListener();
 const backgroundMusic = new THREE.Audio(listener);
 const ballRoll = new THREE.Audio(listener);
+const donutSound = new THREE.Audio(listener);
 const audioLoader = new THREE.AudioLoader();
 
 // Background music
@@ -41,31 +42,59 @@ audioLoader.load("./audio/sfx/ballRoll.wav", function (buffer) {
   ballRoll.playbackRate = 0.65;
 });
 
+// Donut sound
+audioLoader.load("./audio/sfx/donutsound.wav", function (buffer) {
+  donutSound.setBuffer(buffer);
+  donutSound.setLoop(false);
+  donutSound.setVolume(0.6);
+});
+
 // Creates renderer
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
 
 // Loads textures
-const uvTexture = new THREE.TextureLoader().load(
+const ballTexture = new THREE.TextureLoader().load(
   "./assets/textures/ballTexture.png"
 );
+const skybox = new THREE.TextureLoader().load(
+  "./assets/textures/Tex_0015_0.png"
+);
+const groundTexture = new THREE.TextureLoader().load(
+  "./assets/textures/Natural_walnut.webp"
+);
+const donutTexture = new THREE.TextureLoader().load(
+  "./assets/textures/istockphoto-941286158-612x612.jpeg"
+);
+
+// Creates skyboxd
+scene.background = skybox;
 
 // Creates player model
 const playerGeometry = new THREE.SphereGeometry(1, 32, 16);
 const playerMaterial = new THREE.MeshStandardMaterial({
   color: 0xffffff,
-  map: uvTexture,
+  map: ballTexture,
 });
 playerMaterial.transparent = true;
 playerMaterial.opacity = 1;
 playerMaterial.roughness = 0.1;
 const ball = new THREE.Mesh(playerGeometry, playerMaterial);
 
+// Creates donut
+const donutGeometry = new THREE.TorusGeometry(0.5, 0.25, 10, 30);
+const donutMaterial = new THREE.MeshStandardMaterial({
+  color: 0xffffff,
+  map: donutTexture,
+});
+const donut = new THREE.Mesh(donutGeometry, donutMaterial);
+donut.position.set(5, 0, -5);
+
 // Creates plane geometry
 const groundGeometry = new THREE.PlaneGeometry(40, 60);
 const groundMaterial = new THREE.MeshLambertMaterial({
-  color: 0x0000ff,
+  map: groundTexture,
   side: THREE.DoubleSide,
 });
 const ground = new THREE.Mesh(groundGeometry, groundMaterial);
@@ -85,7 +114,9 @@ light.castShadow = true;
 camera.add(topDownCamera);
 camera.add(listener);
 scene.add(camera);
+scene.add(skybox);
 scene.add(ball);
+scene.add(donut);
 scene.add(ground);
 scene.add(ambientLight);
 scene.add(light);
@@ -109,8 +140,32 @@ window.addEventListener("resize", resize);
 function animate() {
   requestAnimationFrame(animate);
   gameLoop();
+  donut.rotation.x += 0.02;
+  donut.rotation.y += 0.02;
+
+  //Donut collision (doesnt work)
+  if (
+    ball.position.x <= donut.position.x &&
+    ball.position.x > donut.position.x - 1 &&
+    ball.position.z <= donut.position.z &&
+    ball.position.z > donut.position.z - 1
+  ) {
+    scene.remove(donut);
+    donutSound.play();
+  }
+
+  // Camera angles
   camera.position.x = ball.position.x;
   camera.position.z = ball.position.z + 5;
+
+  //Diagonal rotation (doesnt work)
+  // if (movementKeys["87"]) {
+  //   if (movementKeys["65"]) {
+  //     camera.rotation.y += 0.01;
+  //   } else if (movementKeys["68"]) {
+  //     camera.rotation.y -= 0.01;
+  //   }
+  // }
 
   // Third person camera
   renderer.setViewport(0, 0, window.innerWidth, window.innerHeight);
